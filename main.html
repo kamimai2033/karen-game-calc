@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Event Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        form {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #result p {
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        .warning {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>ゲームイベント周回計算ツール</h1>
+    <form id="calcForm">
+        <label for="questTime">クエスト1周の時間 (分、デフォルト: 10):</label>
+        <input type="number" id="questTime" value="10" min="1">
+
+        <label for="bonus">ボーナス付与値 (%、デフォルト: 60):</label>
+        <input type="number" id="bonus" value="60" min="0">
+
+        <label for="targetShards">必要欠片数 (デフォルト: 150):</label>
+        <input type="number" id="targetShards" value="150" min="1">
+
+        <label for="periodDays">期間 (日、デフォルト: 14):</label>
+        <input type="number" id="periodDays" value="14" min="1">
+
+        <button type="submit">計算する</button>
+    </form>
+    <div id="result"></div>
+
+    <script>
+        const form = document.getElementById('calcForm');
+        const resultDiv = document.getElementById('result');
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            // 固定値
+            const staminaCost = 40;
+            const recoveryRate = 3; // 分/スタミナ
+            const adStamina = 250;
+            const potionStamina = 200;
+            const basePoints = 300;
+            const rouletteCost = 300;
+            const spinsForBingo = 25;
+            const shardsPerBingo = 5;
+
+            // 入力値
+            const questTime = parseFloat(document.getElementById('questTime').value);
+            const bonus = parseFloat(document.getElementById('bonus').value);
+            const targetShards = parseFloat(document.getElementById('targetShards').value);
+            const periodDays = parseFloat(document.getElementById('periodDays').value);
+
+            // 計算
+            const pointsPerQuest = basePoints * (1 + bonus / 100);
+            const bingosNeeded = Math.ceil(targetShards / shardsPerBingo);
+            const spinsNeeded = bingosNeeded * spinsForBingo;
+            const pointsNeeded = spinsNeeded * rouletteCost;
+            const questsNeeded = Math.ceil(pointsNeeded / pointsPerQuest);
+
+            const staminaNeeded = questsNeeded * staminaCost;
+
+            const naturalPerDay = 1440 / recoveryRate; // 480
+            const freePerDay = naturalPerDay + adStamina; // 730
+            const totalFreeStamina = periodDays * freePerDay; // 10220
+
+            const shortage = staminaNeeded - totalFreeStamina;
+            const potionsNeeded = shortage > 0 ? Math.ceil(shortage / potionStamina) : 0;
+
+            // 期間内可能かチェック
+            const periodMin = periodDays * 1440;
+            const totalQuestTime = questsNeeded * questTime;
+            let warning = '';
+            if (totalQuestTime > periodMin) {
+                warning = '<p class="warning">注意: 必要なクエスト時間が期間を超えています。追加の回復剤やパラメータ調整が必要です。</p>';
+            }
+
+            // 結果表示
+            resultDiv.innerHTML = `
+                <p>必要なビンゴ枚数: ${bingosNeeded}</p>
+                <p>必要なルーレット回数: ${spinsNeeded}</p>
+                <p>必要なポイント: ${pointsNeeded}</p>
+                <p>1クエストあたりのポイント: ${pointsPerQuest.toFixed(2)}</p>
+                <p>必要なクエスト周回数: ${questsNeeded}</p>
+                <p>必要なスタミナ総量: ${staminaNeeded}</p>
+                <p>無料スタミナ総量 (自然+広告): ${totalFreeStamina}</p>
+                <p>必要な回復剤数: ${potionsNeeded}</p>
+                <p>総クエスト時間 (分): ${totalQuestTime} (約 ${ (totalQuestTime / 1440).toFixed(2) } 日)</p>
+                ${warning}
+            `;
+        });
+    </script>
+</body>
+</html>
